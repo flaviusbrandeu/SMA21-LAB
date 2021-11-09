@@ -42,7 +42,6 @@ public class MainActivity extends AppCompatActivity {
             case R.id.bSearch:
                 if (!eSearch.getText().toString().isEmpty()) {
                     // save text to lower case (all our months are stored online in lower case)
-
                     currentMonth = eSearch.getText().toString().toLowerCase();
                     tStatus.setText("Searching ...");
                     createNewDBListener();
@@ -51,6 +50,46 @@ public class MainActivity extends AppCompatActivity {
                 }
                 break;
             case R.id.bUpdate:
+                if (databaseReference != null) {
+                    float income;
+                    float expenses;
+                    if (!eSearch.getText().toString().isEmpty()) {
+                        // save text to lower case (all our months are stored online in lower case)
+                        currentMonth = eSearch.getText().toString().toLowerCase();
+                        if (!eIncome.getText().toString().isEmpty()) {
+                            String eIncomeText = eIncome.getText().toString();
+                            try {
+                                income = Float.parseFloat(eIncomeText);
+                            } catch (NumberFormatException exception) {
+                                Toast.makeText(this, "Income field must contain a number", Toast.LENGTH_SHORT).show();
+                                break;
+                            }
+                        } else {
+                            Toast.makeText(this, "Income field may not be empty", Toast.LENGTH_SHORT).show();
+                            break;
+                        }
+                        if (!eExpenses.getText().toString().isEmpty()) {
+                            String eExpensesText = eExpenses.getText().toString();
+                            try {
+                                expenses = Float.parseFloat(eExpensesText);
+                            } catch (NumberFormatException exception) {
+                                Toast.makeText(this, "Income field must contain a number", Toast.LENGTH_SHORT).show();
+                                break;
+                            }
+                        } else {
+                            Toast.makeText(this, "Income field may not be empty", Toast.LENGTH_SHORT).show();
+                            break;
+                        }
+                        databaseReference.child("calendar").child(currentMonth).child("income").setValue(income);
+                        databaseReference.child("calendar").child(currentMonth).child("expenses").setValue(expenses);
+                        tStatus.setText("Database updated");
+
+                    } else {
+                        Toast.makeText(this, "Month field may not be empty", Toast.LENGTH_SHORT).show();
+                    }
+                } else {
+                    Toast.makeText(this, "No database connected", Toast.LENGTH_SHORT).show();
+                }
                 break;
         }
     }
