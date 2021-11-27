@@ -12,6 +12,7 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.firebase.database.DatabaseReference;
 import com.upt.cti.smartwallet.MainActivity2;
 import com.upt.cti.smartwallet.R;
 import com.upt.cti.smartwallet.model.Payment;
@@ -81,7 +82,7 @@ public class PaymentAdapter extends ArrayAdapter<Payment> {
             @Override
             public void onClick(View v) {
                 if (pItem != null) {
-                    delete(pItem.timestamp);
+                    delete(pItem);
                     Toast.makeText(context, "Payment deleted", Toast.LENGTH_SHORT).show();
                 } else
                     Toast.makeText(context, "Payment does not exist", Toast.LENGTH_SHORT).show();
@@ -91,8 +92,15 @@ public class PaymentAdapter extends ArrayAdapter<Payment> {
         return view;
     }
 
-    private void delete(String timestamp) {
-        AppState.get().getDatabaseReference().child("wallet").child(timestamp).removeValue();
+    private void delete(Payment payment) {
+        DatabaseReference databaseReference = AppState.get().getDatabaseReference();
+        if (databaseReference != null) {
+            databaseReference.child("wallet").child(payment.timestamp).removeValue();
+        } else {
+            AppState.get().updateLocalBackup(context, payment, false);
+            this.remove(payment);
+            this.notifyDataSetChanged();
+        }
     }
 
     private static class ItemHolder {

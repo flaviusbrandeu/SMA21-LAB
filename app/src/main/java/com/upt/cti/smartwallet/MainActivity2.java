@@ -1,9 +1,14 @@
 package com.upt.cti.smartwallet;
 
+import androidx.activity.result.ActivityResult;
+import androidx.activity.result.ActivityResultCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -48,6 +53,7 @@ public class MainActivity2 extends AppCompatActivity {
     private ListView listPayments;
     private int currentMonth;
     private SharedPreferences prefs;
+    private ActivityResultLauncher<Intent> someActivityResultLauncher;
     PaymentAdapter adapter;
 
     @Override
@@ -67,6 +73,19 @@ public class MainActivity2 extends AppCompatActivity {
         currentMonth = prefs.getInt(TAG_MONTH, -1);
         if (currentMonth == -1)
             currentMonth = Month.monthFromTimestamp(AppState.getCurrentTimeDate());
+
+        someActivityResultLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                new ActivityResultCallback<ActivityResult>() {
+                    @Override
+                    public void onActivityResult(ActivityResult result) {
+                        if (result.getResultCode() == Activity.RESULT_OK) {
+                            // There are no request codes
+                            Intent data = result.getData();
+                            loadLocalStorage();
+                        }
+                    }
+                });
 
         fabAdd.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
@@ -92,65 +111,91 @@ public class MainActivity2 extends AppCompatActivity {
             }
         });
 
-
-        // setup firebase
-        final FirebaseDatabase database = FirebaseDatabase.getInstance("https://smart-wallet-e2c24-default-rtdb.europe-west1.firebasedatabase.app/");
-        databaseReference = database.getReference();
-        AppState.get().setDatabaseReference(databaseReference);
-
-        databaseReference.child("wallet").addChildEventListener(new ChildEventListener() {
-            @Override
-            public void onChildAdded(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
-                if (currentMonth == Month.monthFromTimestamp(snapshot.getKey())) {
+        if (!AppState.isNetworkAvailable(this)) {
+            loadLocalStorage();
+        } else {
+            // setup firebase
+            final FirebaseDatabase database = FirebaseDatabase.getInstance("https://smart-wallet-e2c24-default-rtdb.europe-west1.firebasedatabase.app/");
+            databaseReference = database.getReference();
+            AppState.get().setDatabaseReference(databaseReference);
+            for(Month month : Month.values()){
+                List<Payment> localPayments = AppState.get().loadFromLocalBackup(MainActivity2.this, Month.monthNameToInt(month));
+                for(Payment paymentIt : localPayments){
+                    databaseReference.child("wallet").child(paymentIt.timestamp).setValue(paymentIt);
+                }
+            }
+            databaseReference.child("wallet").addChildEventListener(new ChildEventListener() {
+                @Override
+                public void onChildAdded(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
                     Payment payment = snapshot.getValue(Payment.class);
                     payment.timestamp = snapshot.getKey();
-                    payments.add(payment);
+                    AppState.get().updateLocalBackup(MainActivity2.this, payment, true);
+                    if (currentMonth == Month.monthFromTimestamp(snapshot.getKey())) {
+                        payments.add(payment);
+                        adapter.notifyDataSetChanged();
+                    }
+                    if (payments.isEmpty()) {
+                        tStatus.setText(String.format("No payment for %s", Month.intToMonthName(currentMonth)));
+                    } else {
+                        tStatus.setText(String.format("Payments for month %s", Month.intToMonthName(currentMonth)));
+                    }
+                }
+
+                @Override
+                public void onChildChanged(@NonNull DataSnapshot snapshot, @Nullable String
+                        previousChildName) {
+                    Payment payment = snapshot.getValue(Payment.class);
+                    payment.timestamp = snapshot.getKey();
+                    for (int i = 0; i < payments.size(); i++) {
+                        if (payments.get(i).timestamp.equals(payment.timestamp)) {
+                            payments.set(i, payment);
+                        }
+                    }
                     adapter.notifyDataSetChanged();
+                    AppState.get().updateLocalBackup(MainActivity2.this, payment, false);
+                    AppState.get().updateLocalBackup(MainActivity2.this, payment, true);
                 }
-                if(payments.isEmpty()){
-                    tStatus.setText(String.format("No payment for %s", Month.intToMonthName(currentMonth)));
-                } else{
-                    tStatus.setText(String.format("Payments for month %s", Month.intToMonthName(currentMonth)));
-                }
-            }
 
-            @Override
-            public void onChildChanged(@NonNull DataSnapshot snapshot, @Nullable String
-                    previousChildName) {
-                Payment payment = snapshot.getValue(Payment.class);
-                payment.timestamp = snapshot.getKey();
-                for (int i = 0; i < payments.size(); i++) {
-                    if (payments.get(i).timestamp.equals(payment.timestamp)) {
-                        payments.set(i, payment);
+                @Override
+                public void onChildRemoved(@NonNull DataSnapshot snapshot) {
+                    Payment payment = snapshot.getValue(Payment.class);
+                    payment.timestamp = snapshot.getKey();
+                    for (int i = 0; i < payments.size(); i++) {
+                        if (payments.get(i).timestamp.equals(payment.timestamp)) {
+                            payments.remove(i);
+                        }
                     }
+                    adapter.notifyDataSetChanged();
+                    AppState.get().updateLocalBackup(MainActivity2.this, payment, false);
                 }
-                adapter.notifyDataSetChanged();
-            }
 
-            @Override
-            public void onChildRemoved(@NonNull DataSnapshot snapshot) {
-                Payment payment = snapshot.getValue(Payment.class);
-                payment.timestamp = snapshot.getKey();
-                for (int i = 0; i < payments.size(); i++) {
-                    if (payments.get(i).timestamp.equals(payment.timestamp)) {
-                        payments.remove(i);
-                    }
+                @Override
+                public void onChildMoved(@NonNull DataSnapshot snapshot, @Nullable String
+                        previousChildName) {
+
                 }
-                adapter.notifyDataSetChanged();
-            }
 
-            @Override
-            public void onChildMoved(@NonNull DataSnapshot snapshot, @Nullable String
-                    previousChildName) {
+                @Override
+                public void onCancelled(@NonNull DatabaseError error) {
 
-            }
+                }
+            });
+        }
+    }
 
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-
-            }
-        });
-
+    private void loadLocalStorage() {
+        // has local storage already
+        if (AppState.get().hasLocalStorage(this)) {
+            payments = AppState.get().loadFromLocalBackup(MainActivity2.this, currentMonth);
+            tStatus.setText("Found " + payments.size() + " payments for " +
+                    Month.intToMonthName(currentMonth) + ".");
+            adapter.clear();
+            adapter.addAll(payments);
+            adapter.notifyDataSetChanged();
+        } else {
+            Toast.makeText(this, "This app needs an internet connection!", Toast.LENGTH_SHORT).show();
+            return;
+        }
     }
 
     public void clicked(View view) {
@@ -158,23 +203,21 @@ public class MainActivity2 extends AppCompatActivity {
             case R.id.fabAdd:
                 Intent myIntent = new Intent(MainActivity2.this, AddPaymentActivity.class);
                 myIntent.putExtra("ACTION", "ADD");
-                MainActivity2.this.startActivity(myIntent);
+                someActivityResultLauncher.launch(myIntent);
                 break;
             case R.id.bPrevious:
-                if(currentMonth == 0){
+                if (currentMonth == 0) {
                     currentMonth = 11;
-                }
-                else {
+                } else {
                     currentMonth--;
                 }
                 prefs.edit().putInt(TAG_MONTH, currentMonth).apply();
                 recreate();
                 break;
             case R.id.bNext:
-                if(currentMonth == 11){
+                if (currentMonth == 11) {
                     currentMonth = 0;
-                }
-                else {
+                } else {
                     currentMonth++;
                 }
                 prefs.edit().putInt(TAG_MONTH, currentMonth).apply();

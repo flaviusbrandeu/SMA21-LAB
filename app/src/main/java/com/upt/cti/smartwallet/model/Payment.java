@@ -2,12 +2,16 @@ package com.upt.cti.smartwallet.model;
 
 import com.google.firebase.database.IgnoreExtraProperties;
 
+import java.io.Serializable;
+
 @IgnoreExtraProperties
-public class Payment {
+public class Payment implements Serializable {
 
     public String timestamp;
     private double cost;
     private String name;
+    private String type;
+
 
     public void setCost(double cost) {
         this.cost = cost;
@@ -28,8 +32,6 @@ public class Payment {
         this.type = type;
     }
 
-    private String type;
-
     public Payment() {
         // Default constructor required for calls to DataSnapshot.getValue(User.class)
     }
@@ -44,5 +46,14 @@ public class Payment {
 
     public String getType() {
         return type;
+    }
+
+    public Payment copy() {
+        Payment payment = new Payment();
+        payment.timestamp = new String(timestamp);
+        payment.cost = cost;
+        payment.name =  new String(name);
+        payment.type =  new String(type);
+        return payment;
     }
 }
