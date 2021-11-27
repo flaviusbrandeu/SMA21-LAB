@@ -2,13 +2,17 @@ package com.upt.cti.smartwallet.ui;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import com.upt.cti.smartwallet.MainActivity2;
 import com.upt.cti.smartwallet.R;
 import com.upt.cti.smartwallet.model.Payment;
 import com.upt.cti.smartwallet.model.PaymentType;
@@ -45,6 +49,8 @@ public class PaymentAdapter extends ArrayAdapter<Payment> {
             itemHolder.tTime = (TextView) view.findViewById(R.id.tTime);
             itemHolder.tCost = (TextView) view.findViewById(R.id.tCost);
             itemHolder.tType = (TextView) view.findViewById(R.id.tType);
+            itemHolder.iEdit = view.findViewById(R.id.iEdit);
+            itemHolder.iDelete = view.findViewById(R.id.iDelete);
 
             view.setTag(itemHolder);
 
@@ -57,15 +63,40 @@ public class PaymentAdapter extends ArrayAdapter<Payment> {
         itemHolder.tIndex.setText(String.valueOf(position + 1));
         itemHolder.tName.setText(pItem.getName());
         itemHolder.lHeader.setBackgroundColor(PaymentType.getColorFromPaymentType(pItem.getType()));
-        itemHolder.tCost.setText(pItem.getCost() + " LEI");
+        itemHolder.tCost.setText(String.format("%.2f LEI", pItem.getCost()));
         itemHolder.tType.setText(pItem.getType());
         itemHolder.tDate.setText("Date: " + pItem.timestamp.substring(0, 10));
         itemHolder.tTime.setText("Time: " + pItem.timestamp.substring(11));
+        itemHolder.iEdit.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                AppState.get().setCurrentPayment(pItem);
+                Intent myIntent = new Intent(context, AddPaymentActivity.class);
+                myIntent.putExtra("ACTION", "EDIT");
+                context.startActivity(myIntent);
+            }
+        });
+
+        itemHolder.iDelete.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (pItem != null) {
+                    delete(pItem.timestamp);
+                    Toast.makeText(context, "Payment deleted", Toast.LENGTH_SHORT).show();
+                } else
+                    Toast.makeText(context, "Payment does not exist", Toast.LENGTH_SHORT).show();
+            }
+        });
 
         return view;
     }
 
+    private void delete(String timestamp) {
+        AppState.get().getDatabaseReference().child("wallet").child(timestamp).removeValue();
+    }
+
     private static class ItemHolder {
+        ImageView iEdit, iDelete;
         TextView tIndex;
         TextView tName;
         RelativeLayout lHeader;

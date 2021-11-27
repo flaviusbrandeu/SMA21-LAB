@@ -9,7 +9,7 @@
         <entry key="app/src/main/res/layout/activity_add_payment.xml" value="0.5" />
         <entry key="app/src/main/res/layout/activity_main.xml" value="0.33" />
         <entry key="app/src/main/res/layout/activity_main2.xml" value="0.33" />
-        <entry key="app/src/main/res/layout/item_payment.xml" value="0.33" />
+        <entry key="app/src/main/res/layout/item_payment.xml" value="0.5" />
       </map>
     </option>
   </component>
