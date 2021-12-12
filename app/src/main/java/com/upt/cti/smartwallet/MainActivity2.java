@@ -17,6 +17,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -37,6 +39,11 @@ public class MainActivity2 extends AppCompatActivity {
 
     private final static String PREFS_FILE = "prefs";
     private final static String TAG_MONTH = "MONTH";
+
+    // Firebase authentication
+    private FirebaseAuth mAuth;
+    private FirebaseAuth.AuthStateListener mAuthListener;
+    private static final int REQ_SIGNIN = 3;
 
     // firebase
     private DatabaseReference databaseReference;
@@ -92,13 +99,52 @@ public class MainActivity2 extends AppCompatActivity {
             }
         });
 
+        // setup authentication
+        mAuth = FirebaseAuth.getInstance();
+        mAuthListener = new FirebaseAuth.AuthStateListener() {
+            @Override
+            public void onAuthStateChanged(FirebaseAuth firebaseAuth) {
+                FirebaseUser user = firebaseAuth.getCurrentUser();
 
+
+                if (user != null) {
+                    TextView tLoginDetail = (TextView) findViewById(R.id.tLoginDetail);
+                    TextView tUser = (TextView) findViewById(R.id.tUser);
+                    tLoginDetail.setText("Firebase ID: " + user.getUid());
+                    tUser.setText("Email: " + user.getEmail());
+
+                    AppState.get().setUserId(user.getUid());
+                    attachDBListener(user.getUid());
+                } else {
+                    startActivityForResult(new Intent(getApplicationContext(),
+
+                            SignupActivity.class), REQ_SIGNIN);
+                }
+            }
+        };
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        mAuth.addAuthStateListener(mAuthListener);
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        if (mAuthListener != null) {
+            mAuth.removeAuthStateListener(mAuthListener);
+        }
+    }
+
+    private void attachDBListener(String uid) {
         // setup firebase
         final FirebaseDatabase database = FirebaseDatabase.getInstance("https://smart-wallet-e2c24-default-rtdb.europe-west1.firebasedatabase.app/");
         databaseReference = database.getReference();
         AppState.get().setDatabaseReference(databaseReference);
 
-        databaseReference.child("wallet").addChildEventListener(new ChildEventListener() {
+        databaseReference.child("wallet").child(uid).addChildEventListener(new ChildEventListener() {
             @Override
             public void onChildAdded(@NonNull DataSnapshot snapshot, @Nullable String previousChildName) {
                 if (currentMonth == Month.monthFromTimestamp(snapshot.getKey())) {
@@ -107,9 +153,9 @@ public class MainActivity2 extends AppCompatActivity {
                     payments.add(payment);
                     adapter.notifyDataSetChanged();
                 }
-                if(payments.isEmpty()){
+                if (payments.isEmpty()) {
                     tStatus.setText(String.format("No payment for %s", Month.intToMonthName(currentMonth)));
-                } else{
+                } else {
                     tStatus.setText(String.format("Payments for month %s", Month.intToMonthName(currentMonth)));
                 }
             }
@@ -150,7 +196,6 @@ public class MainActivity2 extends AppCompatActivity {
 
             }
         });
-
     }
 
     public void clicked(View view) {
@@ -161,25 +206,25 @@ public class MainActivity2 extends AppCompatActivity {
                 MainActivity2.this.startActivity(myIntent);
                 break;
             case R.id.bPrevious:
-                if(currentMonth == 0){
+                if (currentMonth == 0) {
                     currentMonth = 11;
-                }
-                else {
+                } else {
                     currentMonth--;
                 }
                 prefs.edit().putInt(TAG_MONTH, currentMonth).apply();
                 recreate();
                 break;
             case R.id.bNext:
-                if(currentMonth == 11){
+                if (currentMonth == 11) {
                     currentMonth = 0;
-                }
-                else {
+                } else {
                     currentMonth++;
                 }
                 prefs.edit().putInt(TAG_MONTH, currentMonth).apply();
                 recreate();
                 break;
+            case R.id.bSignOut:
+                mAuth.signOut();
         }
     }
 }

@@ -7,6 +7,22 @@
 
     tools:context=".MainActivity">
 
+    <TextView
+        android:id="@+id/tLoginDetail"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/bSignOut" />
+
+    <TextView
+        android:id="@+id/tUser"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/tLoginDetail" />
+
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabAdd"
         android:layout_width="wrap_content"
@@ -30,7 +46,7 @@
         app:layout_constraintBottom_toTopOf="@id/listPayments"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/tUser"
         app:layout_constraintVertical_chainStyle="packed"
         app:layout_constraintVertical_weight="0.1" />
 
@@ -90,4 +106,15 @@
             android:onClick="clicked"
             android:text="Next" />
     </LinearLayout>
+
+    <Button
+        android:id="@+id/bSignOut"
+        android:layout_width="wrap_content"
+        android:layout_height="0dp"
+        android:layout_marginTop="4dp"
+        android:onClick="clicked"
+        android:text="Sing Out"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 </androidx.constraintlayout.widget.ConstraintLayout>

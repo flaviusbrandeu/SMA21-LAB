@@ -31,6 +31,8 @@ public class AddPaymentActivity extends AppCompatActivity {
     private Spinner sPaymentType;
     private Button bSubmit;
     private ArrayAdapter adapter;
+    private String uid;
+
     private enum Action{
         EDIT,
         ADD
@@ -44,6 +46,7 @@ public class AddPaymentActivity extends AppCompatActivity {
         setContentView(R.layout.activity_add_payment);
         Intent intent = getIntent();
         String action = intent.getStringExtra("ACTION");
+        uid = AppState.get().getUserID();
         databaseReference = AppState.get().getDatabaseReference();
         eCost = findViewById(R.id.eCost);
         ePaymentName = findViewById(R.id.ePaymentName);
@@ -133,7 +136,7 @@ public class AddPaymentActivity extends AppCompatActivity {
             Payment payment = getNewPayment();
             String dateTime = getCurrentTimeDate();
             if(payment != null){
-                databaseReference.child("wallet").child(dateTime).setValue(payment);
+                databaseReference.child("wallet").child(uid).child(dateTime).setValue(payment);
                 finish();
                 Toast.makeText(this, "Payment added", Toast.LENGTH_SHORT).show();
             }
@@ -146,7 +149,7 @@ public class AddPaymentActivity extends AppCompatActivity {
         if (databaseReference != null) {
             Payment payment = getUpdatedPayment(AppState.get().getCurrentPayment());
             if(payment != null){
-                databaseReference.child("wallet").child(payment.timestamp).setValue(payment);
+                databaseReference.child("wallet").child(uid).child(payment.timestamp).setValue(payment);
                 finish();
                 Toast.makeText(this, "Payment updated", Toast.LENGTH_SHORT).show();
             }

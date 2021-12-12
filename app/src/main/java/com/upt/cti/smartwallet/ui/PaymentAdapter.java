@@ -92,7 +92,8 @@ public class PaymentAdapter extends ArrayAdapter<Payment> {
     }
 
     private void delete(String timestamp) {
-        AppState.get().getDatabaseReference().child("wallet").child(timestamp).removeValue();
+        String uid = AppState.get().getUserID();
+        AppState.get().getDatabaseReference().child("wallet").child(uid).child(timestamp).removeValue();
     }
 
     private static class ItemHolder {

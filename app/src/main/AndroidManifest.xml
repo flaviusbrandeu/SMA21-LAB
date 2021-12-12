@@ -10,9 +10,11 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.SmartWallet">
         <activity
+            android:name=".SignupActivity"
+            android:exported="true" />
+        <activity
             android:name=".ui.AddPaymentActivity"
-            android:theme="@style/Base.Theme.AppCompat.Light.Dialog">
-        </activity>
+            android:theme="@style/Base.Theme.AppCompat.Light.Dialog"></activity>
         <activity
             android:name=".MainActivity2"
             android:exported="true">
